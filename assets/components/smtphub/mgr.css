@@ -1,0 +1,49 @@
+#smtphub-panel { padding: 24px; }
+#smtphub-panel .smtphub-intro { padding: 0 0 22px; line-height: 1.6; color: #536675; }
+#smtphub-panel .smtphub-title { font-size: 26px; color: #263b4d; margin: 0 0 6px; font-weight: 600; }
+#smtphub-panel .smtphub-settings { padding: 16px; margin-bottom: 18px; background: #f3f6f8; border: 1px solid #dce4ea; border-radius: 5px; }
+#smtphub-panel .smtphub-status { padding: 14px 0; color: #526979; }
+#smtphub-panel .smtphub-note { padding: 8px 0; color: #78848d; font-size: 12px; }
+#smtphub-panel .smtphub-availability { font-size: 12px; }
+#smtphub-panel .smtphub-availability-yes { color: #258046; font-weight: 600; }
+#smtphub-panel .smtphub-availability-no { color: #b33b35; font-weight: 600; }
+#smtphub-panel .smtphub-availability-unchecked { color: #78848d; }
+#smtphub-panel .smtphub-availability-pending { color: #277caa; }
+#smtphub-panel .x-grid3-row td { padding-top: 8px; padding-bottom: 8px; }
+#smtphub-panel .x-grid3-row { cursor: grab; user-select: none; }
+#smtphub-panel .x-grid3-row:active { cursor: grabbing; }
+#smtphub-panel .smtphub-row-action, #smtphub-panel .smtphub-drag-handle {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 30px; height: 30px; padding: 0; margin: 0 2px;
+    border: 1px solid transparent; border-radius: 4px; background: transparent;
+    box-shadow: none; font-size: 17px; vertical-align: middle; cursor: pointer;
+}
+#smtphub-panel .smtphub-drag-handle { width: 22px; margin: 0; color: #82919a; cursor: grab; font-size: 24px; }
+#smtphub-panel .smtphub-drag-handle:active { cursor: grabbing; }
+#smtphub-panel .smtphub-on { color: #258046; background: #e9f5ec; }
+#smtphub-panel .smtphub-off { color: #78848d; background: #edf0f2; }
+#smtphub-panel .smtphub-menu { color: #526979; }
+#smtphub-panel .smtphub-row-action svg { display: block; width: 18px; height: 18px; pointer-events: none; }
+#smtphub-panel .smtphub-row-action:hover { border-color: currentColor; }
+#smtphub-panel .smtphub-row-action:focus, #smtphub-panel .smtphub-drag-handle:focus { outline: 2px solid #438fbc; outline-offset: 1px; }
+#smtphub-panel .smtphub-drop-before { box-shadow: inset 0 3px 0 #438fbc; }
+#smtphub-panel .smtphub-drop-after { box-shadow: inset 0 -3px 0 #438fbc; }
+.smtphub-window .x-form-item { margin-bottom: 12px; }
+.smtphub-window .smtphub-note { padding: 0 0 16px; color: #637985; line-height: 1.5; }
+/* MODX's small-screen window styles force auto sizing; scope the override to
+   this dialog so its action buttons stay reachable at any viewport height. */
+.smtphub-window.x-window {
+    position: fixed !important;
+    top: 16px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    width: 540px !important;
+    max-width: calc(100vw - 24px) !important;
+    height: calc(100vh - 32px) !important;
+    max-height: 720px !important;
+}
+.smtphub-window.x-window .x-window-body {
+    height: calc(100vh - 132px) !important;
+    max-height: 620px !important;
+    overflow: auto !important;
+}

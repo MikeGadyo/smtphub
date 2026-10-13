@@ -1,0 +1,13 @@
+{
+  "name": "smtphub/modx-extra",
+  "description": "SMTP server management and failover for MODX Revolution",
+  "type": "project",
+  "license": "MIT",
+  "authors": [{"name": "mikegadyo"}],
+  "require": {
+    "php": ">=7.4",
+    "ext-openssl": "*",
+    "ext-mbstring": "*",
+    "ext-pdo_mysql": "*"
+  }
+}

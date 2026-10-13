@@ -1,0 +1,21 @@
+/vendor/
+/_packages/
+/tests/
+/_build/build.config.php
+/core/components/smtphub/config/servers.php
+
+# Local development files and build output
+/dist/
+/artifacts/
+/VERIFICATION.md
+/PUBLICATION.md
+/core/components/smtphub/config/servers.example.php
+
+# Private configuration and temporary files
+.env
+.env.*
+!.env.example
+**/smtphub.key.php
+*.log
+.DS_Store
+Thumbs.db
