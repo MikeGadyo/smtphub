@@ -13,6 +13,7 @@ return function ($modx, $suffix = 'smtphub_servers') {
         host VARCHAR(255) NOT NULL, port INT NOT NULL DEFAULT 587, secure VARCHAR(8) NOT NULL DEFAULT "tls",
         auth TINYINT NOT NULL DEFAULT 1, username VARCHAR(255) NOT NULL DEFAULT "",
         password_cipher TEXT NOT NULL, timeout INT NOT NULL DEFAULT 5, auto_tls TINYINT NOT NULL DEFAULT 1,
+        sender_email VARCHAR(254) NOT NULL DEFAULT "", sender_name VARCHAR(128) NOT NULL DEFAULT "",
         revision INT UNSIGNED NOT NULL DEFAULT 1, deleted TINYINT NOT NULL DEFAULT 0,
         PRIMARY KEY (id), KEY routing_order (deleted, enabled, priority, id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4',
@@ -24,5 +25,16 @@ return function ($modx, $suffix = 'smtphub_servers') {
     foreach ($queries as $query) {
         $statement = $modx->prepare($query);
         if (!$statement || !$statement->execute()) { throw new \RuntimeException('SMTPHub storage migration failed.'); }
+    }
+    $columns = $modx->prepare('SHOW COLUMNS FROM `' . $prefix . $suffix . '`');
+    if (!$columns || !$columns->execute()) { throw new \RuntimeException('SMTPHub storage migration failed.'); }
+    $known = array_column($columns->fetchAll(\PDO::FETCH_ASSOC), 'Field');
+    $add = [];
+    foreach (['sender_email' => 254, 'sender_name' => 128] as $name => $length) {
+        if (!in_array($name, $known, true)) { $add[] = 'ADD COLUMN `' . $name . '` VARCHAR(' . $length . ') NOT NULL DEFAULT ""'; }
+    }
+    if ($add) {
+        $statement = $modx->prepare('ALTER TABLE `' . $prefix . $suffix . '` ' . implode(', ', $add));
+        if (!$statement || !$statement->execute()) { throw new \RuntimeException('SMTPHub sender migration failed.'); }
     }
 };

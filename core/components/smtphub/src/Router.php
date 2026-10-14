@@ -42,6 +42,11 @@ class Router
         return false;
     }
 
+    public function selected()
+    {
+        return $this->selected;
+    }
+
     public function disconnected()
     {
         if ($this->selected !== null) {

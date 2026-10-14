@@ -21,8 +21,11 @@ class SmtphubIndexManagerController extends SmtpHubManagerControllerBase
         $this->addHtml('<script>window.SMTPHubConfig=' . json_encode(['connector' => $url . 'connector.php',
             'labels' => $labels, 'version' => $release['version'], 'author' => $release['author'],
             'auth' => $this->modx->user->getUserToken('mgr')], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) . ';</script>');
-        $this->addCss($url . 'mgr.css?v=' . $release['version']);
-        $this->addJavascript($url . 'mgr.js?v=' . $release['version']);
+        $assetsPath = $this->modx->getOption('assets_path') . 'components/smtphub/';
+        foreach (['mgr.css' => 'addCss', 'mgr.js' => 'addJavascript'] as $file => $method) {
+            $revision = is_file($assetsPath . $file) ? substr(hash_file('sha256', $assetsPath . $file), 0, 12) : '';
+            $this->$method($url . $file . '?v=' . $release['version'] . '-' . $revision);
+        }
     }
 }
 return 'SmtphubIndexManagerController';

@@ -36,7 +36,7 @@ class ServerRepository
 
     public function listing()
     {
-        $rows = $this->sql('SELECT s.id,s.name,s.priority,s.enabled,s.host,s.port,s.secure,s.auth,s.username,s.timeout,s.auto_tls,s.revision,
+        $rows = $this->sql('SELECT s.id,s.name,s.priority,s.enabled,s.host,s.port,s.secure,s.auth,s.username,s.timeout,s.auto_tls,s.revision,s.sender_email,s.sender_name,
             s.password_cipher,(s.password_cipher <> "") AS has_password,
             a.available,a.checked_at,a.connection_hash FROM ' . $this->table . ' s LEFT JOIN ' . $this->availabilityTable . ' a ON a.server_id=s.id
             WHERE s.deleted=0 ORDER BY s.priority,s.id')->fetchAll(\PDO::FETCH_ASSOC);
@@ -60,7 +60,7 @@ class ServerRepository
             $profiles[] = ['id' => 'server_' . $row['id'], 'host' => $row['host'], 'port' => (int) $row['port'],
                 'secure' => $row['secure'], 'auth' => (bool) $row['auth'], 'username' => $row['username'],
                 'password' => $this->crypto->decrypt($row['password_cipher']), 'timeout' => (int) $row['timeout'],
-                'auto_tls' => (bool) $row['auto_tls']];
+                'auto_tls' => (bool) $row['auto_tls'], 'sender_email' => $row['sender_email'] ?? '', 'sender_name' => $row['sender_name'] ?? ''];
         }
         return Profiles::validate($profiles);
     }
@@ -89,7 +89,7 @@ class ServerRepository
         return Profiles::validate([['id' => 'server_' . $id, 'host' => $row['host'], 'port' => (int) $row['port'],
             'secure' => $row['secure'], 'auth' => (bool) $row['auth'], 'username' => $row['username'],
             'password' => $this->crypto->decrypt($row['password_cipher']), 'timeout' => (int) $row['timeout'],
-            'auto_tls' => (bool) $row['auto_tls']]])[0];
+            'auto_tls' => (bool) $row['auto_tls'], 'sender_email' => $row['sender_email'] ?? '', 'sender_name' => $row['sender_name'] ?? '']])[0];
     }
 
     private function connectionHash(array $row)
@@ -144,11 +144,25 @@ class ServerRepository
         $cipher = $old ? $old['password_cipher'] : '';
         if ($password !== '') { $cipher = $this->crypto->encrypt($password); }
         if (self::boolean($input['clear_password'] ?? false)) { $cipher = ''; }
+        foreach (['sender_email', 'sender_name'] as $field) {
+            if (isset($input[$field]) && !is_string($input[$field])) {
+                throw new \InvalidArgumentException('Проверьте поля отправителя.');
+            }
+        }
         $profile = ['id' => 'validation', 'host' => trim((string) ($input['host'] ?? '')),
             'port' => $this->number($input['port'] ?? 587, 1, 65535, 'Порт'),
             'secure' => (string) ($input['secure'] ?? 'tls'), 'auth' => self::boolean($input['auth'] ?? false),
             'username' => trim((string) ($input['username'] ?? '')), 'password' => $this->crypto->decrypt($cipher),
-            'timeout' => $this->number($input['timeout'] ?? 5, 1, 60, 'Таймаут'), 'auto_tls' => self::boolean($input['auto_tls'] ?? false)];
+            'timeout' => $this->number($input['timeout'] ?? 5, 1, 60, 'Таймаут'), 'auto_tls' => self::boolean($input['auto_tls'] ?? false),
+            'sender_email' => trim((string) ($input['sender_email'] ?? ($old['sender_email'] ?? ''))),
+            'sender_name' => trim((string) ($input['sender_name'] ?? ($old['sender_name'] ?? '')))];
+        if (strlen($profile['sender_email']) > 254 || ($profile['sender_email'] !== '' &&
+            !filter_var($profile['sender_email'], FILTER_VALIDATE_EMAIL))) {
+            throw new \InvalidArgumentException('Укажите корректный email отправителя или оставьте поле пустым.');
+        }
+        if (mb_strlen($profile['sender_name']) > 128 || preg_match('/[\x00-\x1f\x7f]/', $profile['sender_name'])) {
+            throw new \InvalidArgumentException('Имя отправителя: до 128 символов, без переносов строк.');
+        }
         if ($profile['auth'] && ($profile['username'] === '' || $profile['password'] === '')) {
             throw new \InvalidArgumentException('Для авторизации заполните логин и пароль. При редактировании пустой пароль сохраняет прежний.');
         }
@@ -159,11 +173,12 @@ class ServerRepository
         $priority = $old ? (int) $old['priority'] : 0;
         $values = [$name, $priority,
             (int) self::boolean($input['enabled'] ?? false), $profile['host'], $profile['port'], $profile['secure'],
-            (int) $profile['auth'], $profile['username'], $cipher, $profile['timeout'], (int) $profile['auto_tls']];
+            (int) $profile['auth'], $profile['username'], $cipher, $profile['timeout'], (int) $profile['auto_tls'],
+            $profile['sender_email'], $profile['sender_name']];
         if ($old) {
             $values[] = $id; $values[] = $this->number($input['revision'] ?? 0, 1, 2147483647, 'Версия записи');
             $result = $this->sql('UPDATE ' . $this->table . ' SET name=?,priority=?,enabled=?,host=?,port=?,secure=?,auth=?,username=?,
-                password_cipher=?,timeout=?,auto_tls=?,revision=revision+1 WHERE id=? AND revision=? AND deleted=0', $values);
+                password_cipher=?,timeout=?,auto_tls=?,sender_email=?,sender_name=?,revision=revision+1 WHERE id=? AND revision=? AND deleted=0', $values);
             if ($result->rowCount() !== 1) { throw new \InvalidArgumentException('Сервер уже изменён другим пользователем. Обновите список.'); }
         } else {
             $this->sql('START TRANSACTION');
@@ -172,8 +187,8 @@ class ServerRepository
                 // cannot land halfway through a freshly renumbered list.
                 $priorities = $this->sql('SELECT priority FROM ' . $this->table . ' WHERE deleted=0 ORDER BY priority DESC,id DESC FOR UPDATE')->fetchAll(\PDO::FETCH_COLUMN);
                 $values[1] = ($priorities ? (int) $priorities[0] : 0) + 10;
-                $this->sql('INSERT INTO ' . $this->table . ' (name,priority,enabled,host,port,secure,auth,username,password_cipher,timeout,auto_tls)
-                    VALUES (?,?,?,?,?,?,?,?,?,?,?)', $values);
+                $this->sql('INSERT INTO ' . $this->table . ' (name,priority,enabled,host,port,secure,auth,username,password_cipher,timeout,auto_tls,sender_email,sender_name)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)', $values);
                 $this->sql('COMMIT');
             } catch (\Throwable $e) { $this->sql('ROLLBACK'); throw $e; }
         }
@@ -198,7 +213,7 @@ class ServerRepository
             'enabled' => (bool) $row['enabled'], 'host' => $row['host'], 'port' => (int) $row['port'],
             'secure' => $row['secure'], 'auth' => (bool) $row['auth'], 'username' => $row['username'],
             'password' => $this->crypto->decrypt($row['password_cipher']), 'timeout' => (int) $row['timeout'],
-            'auto_tls' => (bool) $row['auto_tls']]);
+            'auto_tls' => (bool) $row['auto_tls'], 'sender_email' => $row['sender_email'], 'sender_name' => $row['sender_name']]);
     }
 
     private function importKey(array $row)

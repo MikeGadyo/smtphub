@@ -35,6 +35,7 @@ class Profiles
             $p = array_merge([
                 'port' => 587, 'secure' => 'tls', 'auth' => true,
                 'username' => '', 'password' => '', 'auto_tls' => true, 'timeout' => 5,
+                'sender_email' => '', 'sender_name' => '',
             ], $item);
             if (!isset($p['id'], $p['host']) || !is_string($p['id']) ||
                 !preg_match('/^[a-zA-Z0-9_-]{1,64}$/D', $p['id']) || isset($ids[$p['id']]) ||
@@ -60,6 +61,16 @@ class Profiles
             }
             if ($p['auth'] && ($p['username'] === '' || $p['password'] === '')) {
                 throw new \InvalidArgumentException('SMTPHub authentication requires credentials.');
+            }
+            if (!is_string($p['sender_email']) || !is_string($p['sender_name'])) {
+                throw new \InvalidArgumentException('Invalid SMTPHub sender settings.');
+            }
+            $p['sender_email'] = trim($p['sender_email']);
+            $p['sender_name'] = trim($p['sender_name']);
+            if (strlen($p['sender_email']) > 254 || ($p['sender_email'] !== '' &&
+                !filter_var($p['sender_email'], FILTER_VALIDATE_EMAIL)) ||
+                mb_strlen($p['sender_name']) > 128 || preg_match('/[\x00-\x1f\x7f]/', $p['sender_name'])) {
+                throw new \InvalidArgumentException('Invalid SMTPHub sender settings.');
             }
             $ids[$p['id']] = true;
             // A changed credential/endpoint must not inherit an old cooldown.

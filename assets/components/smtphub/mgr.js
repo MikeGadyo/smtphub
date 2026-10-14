@@ -4,7 +4,7 @@
         var config = window.SMTPHubConfig;
         var labels = config.labels;
         var store = new Ext.data.JsonStore({
-            idProperty: 'id', fields: ['id', 'name', 'priority', 'enabled', 'host', 'port', 'secure', 'auth', 'username', 'timeout', 'auto_tls', 'revision', 'has_password', 'availability']
+            idProperty: 'id', fields: ['id', 'name', 'priority', 'enabled', 'host', 'port', 'secure', 'auth', 'username', 'timeout', 'auto_tls', 'revision', 'has_password', 'availability', 'sender_email', 'sender_name']
         });
         var status = new Ext.BoxComponent({autoEl: {tag: 'div', cls: 'smtphub-status', html: 'Загрузка серверов…'}});
         var enabled = new Ext.form.Checkbox({boxLabel: 'Включить SMTPHub', name: 'enabled'});
@@ -89,7 +89,7 @@
         var edit = function (record) {
             if (busy) { return; }
             var values = record ? record.data : {id: 0, revision: 0,
-                enabled: true, auth: true, auto_tls: true, port: 587, secure: 'tls', timeout: 5};
+                enabled: true, auth: true, auto_tls: true, port: 587, secure: 'tls', timeout: 5, sender_email: '', sender_name: ''};
             var secure = new Ext.form.ComboBox({fieldLabel: labels.secure, hiddenName: 'secure', name: 'secure_label',
                 store: new Ext.data.SimpleStore({fields: ['value', 'label'], data: [['ssl', 'SSL (обычно 465)'], ['tls', 'TLS (STARTTLS, обычно 587)'], ['', 'Без шифрования']]}),
                 valueField: 'value', displayField: 'label', mode: 'local', triggerAction: 'all', editable: false, forceSelection: true, anchor: '100%'});
@@ -107,6 +107,9 @@
                     {xtype: 'checkbox', fieldLabel: 'Очистить пароль', boxLabel: 'Удалить сохранённый пароль', name: 'clear_password', hidden: !record},
                     {xtype: 'numberfield', fieldLabel: labels.timeout + ', сек.', name: 'timeout', minValue: 1, maxValue: 60, allowDecimals: false, allowBlank: false},
                     {xtype: 'checkbox', fieldLabel: labels.auto_tls, boxLabel: 'Включать TLS, если сервер его поддерживает', name: 'auto_tls'},
+                    {xtype: 'textfield', fieldLabel: 'Email отправителя', name: 'sender_email', maxLength: 254, vtype: 'email', emptyText: 'Необязательно'},
+                    {xtype: 'textfield', fieldLabel: 'Имя отправителя', name: 'sender_name', maxLength: 128, emptyText: 'Необязательно'},
+                    {xtype: 'box', autoEl: {tag: 'div', cls: 'smtphub-note', html: 'Пустые поля сохраняют отправителя сайта. Заполненный email заменяет адрес «От кого» и адрес возврата ошибок только для этого SMTP. Сервер должен разрешать этот адрес.'}},
                     {xtype: 'checkbox', fieldLabel: 'Состояние', boxLabel: 'Сервер включён', name: 'enabled'}
                 ]});
             var size = Ext.getBody().getViewSize();
@@ -136,7 +139,7 @@
             {text: 'Использовать в MODX', handler: function () {
                 var row = menuRow;
                 if (busy) { return; }
-                Ext.Msg.confirm('Использовать в MODX', 'Скопировать настройки «' + encode(row.data.name) + '» в системные настройки MODX? Текущие SMTP-настройки будут заменены, штатная SMTP-отправка будет включена. Состояние SMTPHub не изменится.', function (button) {
+                Ext.Msg.confirm('Использовать в MODX', 'Скопировать настройки «' + encode(row.data.name) + '» в системные настройки MODX? Текущие SMTP-настройки будут заменены, штатная SMTP-отправка будет включена. Состояние SMTPHub не изменится. Email и имя отправителя этой записи действуют только в SMTPHub и не переносятся.', function (button) {
                     if (button === 'yes') { request('use_native', {id: row.id, revision: row.data.revision}); }
                 });
             }},
